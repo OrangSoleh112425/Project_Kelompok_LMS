@@ -1,0 +1,79 @@
+package com.edulearn.kelompok3.Activity;
+
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.Volley;
+import com.edulearn.kelompok3.Adapter.JadwalAdapterGrouped;
+import com.edulearn.kelompok3.R;
+import com.edulearn.kelompok3.ViewModel.JadwalViewModel;
+
+import java.util.ArrayList;
+
+public class DetailJadwalActivity extends AppCompatActivity {
+
+    private RecyclerView recyclerView;
+    private JadwalAdapterGrouped jadwalAdapterGrouped;
+    private JadwalViewModel jadwalViewModel;
+    private RequestQueue requestQueue;
+    private TextView noJadwalTextView;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_detail_jadwal);
+
+        // Inisialisasi RecyclerView
+        recyclerView = findViewById(R.id.recyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        // Inisialisasi adapter dengan list kosong
+        jadwalAdapterGrouped = new JadwalAdapterGrouped(this, new ArrayList<>());
+        recyclerView.setAdapter(jadwalAdapterGrouped);
+
+        // Inisialisasi ViewModel
+        jadwalViewModel = new ViewModelProvider(this).get(JadwalViewModel.class);
+
+        // Inisialisasi TextView
+        noJadwalTextView = findViewById(R.id.nojadwal);
+
+        // Observasi data jadwal dari ViewModel
+        jadwalViewModel.getJadwalGroupedList().observe(this, groupedList -> {
+            if (groupedList == null || groupedList.isEmpty()) {
+                noJadwalTextView.setVisibility(View.VISIBLE);
+                recyclerView.setVisibility(View.GONE);
+            } else {
+                noJadwalTextView.setVisibility(View.GONE);
+                recyclerView.setVisibility(View.VISIBLE);
+                jadwalAdapterGrouped.updateData(groupedList);
+            }
+        });
+
+        // Observasi error
+        jadwalViewModel.getErrorMessage().observe(this, errorMessage -> {
+            if (errorMessage != null) {
+                Log.e("Error", errorMessage);
+            }
+        });
+
+        // Panggil API melalui ViewModel
+        requestQueue = Volley.newRequestQueue(this);
+        String token = getSharedPreferences("user_session", MODE_PRIVATE).getString("user_token", "");
+        if (!token.isEmpty()) {
+            jadwalViewModel.fetchJadwal(requestQueue, token);
+        }
+
+        // Tangani tombol kembali
+        findViewById(R.id.ic_kembali).setOnClickListener(v -> {
+            finish(); // Kembali ke halaman sebelumnya
+        });
+    }
+}

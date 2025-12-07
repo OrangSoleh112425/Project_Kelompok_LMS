@@ -91,7 +91,12 @@ public class HomeFragment extends Fragment {
 
         TextView tvQuote = rootView.findViewById(R.id.tv_quote);
         String currentDay = getCurrentDay();
-        String quoteForToday = quotes.getOrDefault(currentDay, "Belajar adalah jendela dunia!");
+        String quoteForToday;
+        if (quotes.containsKey(currentDay)) {
+            quoteForToday = quotes.get(currentDay);
+        } else {
+            quoteForToday = "Belajar adalah jendela dunia!";
+        }
         tvQuote.setText(quoteForToday);
 
         tvWelcome.setText("Selamat Datang, Arya!");

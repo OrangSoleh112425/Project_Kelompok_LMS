@@ -1,1 +1,1 @@
-ini adalah aplikasi buatan nekolympus
+Fitur Homepage, Login/Register, Dashboard

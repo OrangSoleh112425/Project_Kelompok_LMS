@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Menggunakan warna yang sudah ada di palet Anda -->
+    <solid android:color="@color/light_card_blue" />
+
+    <!-- Memberikan sudut yang sedikit membulat -->
+    <corners android:radius="8dp" />
+
+</shape>

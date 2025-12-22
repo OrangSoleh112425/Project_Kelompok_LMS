@@ -4,13 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.projectkelompok"
-    compileSdk {
-        version = release(36)
-    }
+    namespace = "com.edulearn.kelompok3"
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.projectkelompok"
+        applicationId = "com.edulearn.kelompok3"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

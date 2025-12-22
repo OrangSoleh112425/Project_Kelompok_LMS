@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- New Modern UI Palette -->
+    <color name="light_blue_background">#E8F5FF</color>
+    <color name="dark_text">#202124</color>
+    <color name="light_text">#5F6368</color>
+    <color name="light_card_blue">#DDEEFE</color>
+    <color name="dark_blue_header">#1E5BBD</color>
+    <color name="dark_blue">#1E5BBD</color> <!-- Warna yang hilang, ditambahkan di sini -->
+
+    <!-- Menu Button Colors -->
+    <color name="menu_button_blue">#D2E6FF</color>
+    <color name="menu_button_yellow">#FFEFCB</color>
+    <color name="menu_button_purple">#E1DFFF</color>
+    <color name="menu_button_lightblue">#D2F4FF</color>
+    <color name="menu_button_green">#D2FFD6</color>
+
+    <!-- Status Colors -->
+    <color name="status_ongoing">#2E7D32</color> <!-- Green -->
+    <color name="status_finished">#616161</color> <!-- Gray -->
+
+    <!-- Base Colors -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="dark_gray">#616161</color>
+
 </resources>

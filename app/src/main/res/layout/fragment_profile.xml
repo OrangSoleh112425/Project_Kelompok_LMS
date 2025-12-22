@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    tools:context=".Fragment.ProfileFragment">
+
+    <ImageView
+        android:id="@+id/img_profile"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/ic_profil"
+        android:clipToOutline="true"
+        android:scaleType="centerCrop"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvnama"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="-"
+        android:textColor="@color/black"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/img_profile" />
+
+
+    <!-- CardView untuk My Address 1 -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/nisn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="24dp"
+        app:cardBackgroundColor="@color/white"
+        app:cardElevation="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvnama">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="16dp">
+
+            <!-- Icon di kiri -->
+            <ImageView
+                android:id="@+id/icon_nis"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:src="@drawable/ic_infoout" />
+
+            <TextView
+                android:id="@+id/textView4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_marginStart="15dp"
+                android:layout_toEndOf="@+id/icon_nis"
+                android:text="NISN"
+                android:textColor="@color/light_text"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvnisn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/textView4"
+                android:layout_marginStart="15dp"
+                android:layout_marginTop="3dp"
+                android:layout_toEndOf="@+id/icon_nis"
+                android:text="-"
+                android:textColor="@color/black"
+                android:textSize="16sp" />
+        </RelativeLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- CardView untuk Telepon -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/kelas"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="2dp"
+        app:cardBackgroundColor="@color/white"
+        app:cardElevation="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/nisn">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="16dp">
+
+            <!-- Icon di kiri -->
+            <ImageView
+                android:id="@+id/icon_kelas"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:src="@drawable/ic_kelas" />
+
+            <!-- Judul Telepon di atas -->
+            <TextView
+                android:id="@+id/textView6"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_marginStart="15dp"
+                android:layout_toEndOf="@+id/icon_kelas"
+                android:text="Kelas"
+                android:textColor="@color/light_text"
+                android:textSize="14sp" />
+
+            <!-- Nomor telepon di bawah judul Telepon -->
+            <TextView
+                android:id="@+id/tvkelas"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/textView6"
+                android:layout_marginStart="15dp"
+                android:layout_marginTop="3dp"
+                android:layout_toEndOf="@id/icon_kelas"
+                android:text="-"
+                android:textColor="@color/black"
+                android:textSize="16sp" />
+        </RelativeLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- CardView untuk No HP -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/walikelas"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="2dp"
+        app:cardBackgroundColor="@color/white"
+        app:cardElevation="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/kelas">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="16dp">
+
+            <ImageView
+                android:id="@+id/icon_walikelas"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:src="@drawable/ic_walikelas" />
+
+            <TextView
+                android:id="@+id/tvwalikelas"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_marginStart="15dp"
+                android:layout_toEndOf="@+id/icon_walikelas"
+                android:text="Walikelas"
+                android:textColor="@color/light_text"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/namawalikelas"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/tvwalikelas"
+                android:layout_marginStart="15dp"
+                android:layout_marginTop="3dp"
+                android:layout_toEndOf="@+id/icon_walikelas"
+                android:text="-"
+                android:textColor="@color/black"
+                android:textSize="16sp" />
+        </RelativeLayout>
+    </androidx.cardview.widget.CardView>
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/nohp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="2dp"
+        app:cardBackgroundColor="@color/white"
+        app:cardElevation="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/walikelas">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="16dp">
+
+            <!-- Icon di kiri -->
+            <ImageView
+                android:id="@+id/icon_nomor"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:src="@drawable/ic_phone" />
+
+            <!-- Judul No HP di atas -->
+            <TextView
+                android:id="@+id/textView11"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_marginStart="15dp"
+                android:layout_toEndOf="@+id/icon_nomor"
+                android:text="Nomor"
+                android:textColor="@color/light_text"
+                android:textSize="14sp" />
+
+
+            <TextView
+                android:id="@+id/tv_nomor"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/textView11"
+                android:layout_marginStart="15dp"
+                android:layout_marginTop="3dp"
+                android:layout_toEndOf="@+id/icon_nomor"
+                android:text="-"
+                android:textColor="@color/black"
+                android:textSize="16sp" />
+
+        </RelativeLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- CardView untuk Ganti Password -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/gantipw"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="32dp"
+        app:cardBackgroundColor="@color/white"
+        app:cardElevation="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/nohp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="16dp">
+
+            <ImageView
+                android:id="@+id/icon_password"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_keamanan" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:text="Ubah Kata Sandi"
+                android:textColor="@color/black"
+                android:textSize="16sp" />
+
+            <ImageView
+                android:id="@+id/ic_editpw"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_edit" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- CardView untuk Logout -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/card_logout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="2dp"
+        app:cardBackgroundColor="@color/white"
+        app:cardElevation="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/gantipw">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="16dp">
+
+            <ImageView
+                android:id="@+id/icon_logout"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:contentDescription="Logout"
+                android:src="@drawable/ic_logout" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_weight="1"
+                android:text="Logout"
+                android:textColor="@color/black"
+                android:textSize="16sp" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

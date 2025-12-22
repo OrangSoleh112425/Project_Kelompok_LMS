@@ -1,4 +1,4 @@
-package com.example.projectkelompok
+package com.edulearn.kelompok3
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

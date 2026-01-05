@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "328255031286",
+    "project_id": "db-lms-edulearn",
+    "storage_bucket": "db-lms-edulearn.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:328255031286:android:a29818b4f870fb33a669d7",
+        "android_client_info": {
+          "package_name": "com.edulearn.kelompok3"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA09UqE8iy43HbLGab5zFiaqUOnEhXFphI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

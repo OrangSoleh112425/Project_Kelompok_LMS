@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/navigation_home"
+        android:icon="@drawable/bottom_home"
+        android:title="Home" />
+    <item
+        android:id="@+id/navigation_kelas"
+        android:icon="@drawable/ic_kelas"
+        android:title="Kelas" />
+    <item
+        android:id="@+id/navigation_akademik"
+        android:icon="@drawable/ic_akademik"
+        android:title="Akademik" />
+    <item
+        android:id="@+id/navigation_profile"
+        android:icon="@drawable/bottom_profil"
+        android:title="Profile" />
+</menu>

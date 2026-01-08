@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="24dp">
+
+        <TextView
+            android:id="@+id/tv_soal"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/dark_text"
+            android:textSize="18sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Berapakah hasil dari 2 + 2? Pertanyaan ini bisa jadi sangat panjang dan membutuhkan beberapa baris untuk ditampilkan sepenuhnya." />
+
+        <!-- Pilihan A -->
+        <TextView
+            android:id="@+id/tv_answer1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/bg_option_selector"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="16dp"
+            android:textColor="@color/dark_text"
+            android:textSize="16sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_soal"
+            tools:text="A. Jawaban Satu" />
+
+        <!-- Pilihan B -->
+        <TextView
+            android:id="@+id/tv_answer2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_option_selector"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="16dp"
+            android:textColor="@color/dark_text"
+            android:textSize="16sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_answer1"
+            tools:text="B. Jawaban Dua" />
+
+        <!-- Pilihan C -->
+        <TextView
+            android:id="@+id/tv_answer3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_option_selector"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="16dp"
+            android:textColor="@color/dark_text"
+            android:textSize="16sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_answer2"
+            tools:text="C. Jawaban Tiga" />
+
+        <!-- Pilihan D -->
+        <TextView
+            android:id="@+id/tv_answer4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_option_selector"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="16dp"
+            android:textColor="@color/dark_text"
+            android:textSize="16sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_answer3"
+            tools:text="D. Jawaban Empat" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</ScrollView>

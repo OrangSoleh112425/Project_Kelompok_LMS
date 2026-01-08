@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="280dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layout_marginEnd="16dp">
+
+    <!-- Pembungkus gambar agar memiliki sudut tumpul -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="150dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"> 
+
+        <ImageView
+            android:id="@+id/iv_gambar_pengumuman"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_image" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Judul Pengumuman -->
+    <TextView
+        android:id="@+id/tv_judul_pengumuman"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="Judul Pengumuman Akan Tampil di Sini"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+        android:textStyle="bold"
+        android:maxLines="2"
+        android:ellipsize="end"/>
+
+    <!-- Tanggal Pengumuman -->
+    <TextView
+        android:id="@+id/tv_tanggal_pengumuman"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="15 Juli 2024"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"/>
+
+</LinearLayout>

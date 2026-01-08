@@ -1,0 +1,70 @@
+// build.gradle (Module :app)
+plugins {
+    id 'com.android.application'
+    id 'com.google.gms.google-services'
+}
+
+android {
+    namespace 'com.edulearn.kelompok3' // Tambahkan baris ini untuk menetapkan namespace
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.edulearn.kelompok3"
+        minSdk 23
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.activity:activity:1.9.3'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.gridlayout:gridlayout:1.0.0' // DEPENDENCY UNTUK GRID LAYOUT
+    implementation 'com.android.volley:volley:1.2.1'
+    // Volley dependency tetap ada
+    implementation 'androidx.lifecycle:lifecycle-viewmodel:2.5.0'  // Sesuaikan dengan versi terbaru
+    implementation 'androidx.lifecycle:lifecycle-livedata:2.5.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.0' // Jika Anda menggunakan Kotlin
+    implementation 'androidx.cardview:cardview:1.0.0'
+    implementation "androidx.viewpager2:viewpager2:1.0.0"
+
+    implementation 'com.github.bumptech.glide:glide:4.15.1'
+    implementation libs.firebase.auth
+//    implementation libs.firebase.auth
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.15.1'
+    implementation "androidx.navigation:navigation-fragment-ktx:2.3.5"
+    implementation "androidx.navigation:navigation-ui-ktx:2.3.5"
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+
+    // Dependencies untuk pengujian
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+
+    // Dependenies Auth
+//    implementation 'com.google.firebase:firebase-auth'
+}

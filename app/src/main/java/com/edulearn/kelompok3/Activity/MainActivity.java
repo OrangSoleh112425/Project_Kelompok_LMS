@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.edulearn.kelompok3.Fragment.AkademikFragment;
 import com.edulearn.kelompok3.Fragment.HomeFragment;
@@ -19,18 +20,18 @@ import com.edulearn.kelompok3.R;
 
 public class MainActivity extends AppCompatActivity {
 
-    private String userToken;
-    private boolean doubleBackToExitPressedOnce = false; // Variabel untuk deteksi klik back dua kali
+    private FirebaseAuth auth;
+    private boolean doubleBackToExitPressedOnce = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Ambil token dari Intent
-        userToken = getIntent().getStringExtra("user_token");
+        // 1. Inisialisasi Firebase Auth
+        auth = FirebaseAuth.getInstance();
 
-        // Jika token kosong, arahkan ke LoginActivity
-        if (userToken == null || userToken.isEmpty()) {
+        // 2. Cek Sesi Login. Jika user null (belum login), tendang balik ke LoginActivity
+        if (auth.getCurrentUser() == null) {
             Intent loginIntent = new Intent(this, LoginActivity.class);
             loginIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(loginIntent);
@@ -46,8 +47,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         setupBottomNavigation();
-
-        // Setup Back Press Handling
         setupOnBackPressedDispatcher();
     }
 
@@ -57,17 +56,18 @@ public class MainActivity extends AppCompatActivity {
             Fragment selectedFragment = null;
             boolean addToBackStack = false;
 
-            if (item.getItemId() == R.id.navigation_home) {
+            int itemId = item.getItemId();
+            if (itemId == R.id.navigation_home) {
                 selectedFragment = new HomeFragment();
-            } else if (item.getItemId() == R.id.navigation_kelas) {
+            } else if (itemId == R.id.navigation_kelas) {
                 selectedFragment = new KelasFragment();
-                addToBackStack = true; // Tambahkan ke backstack untuk fragment selain Home
-            } else if (item.getItemId() == R.id.navigation_akademik) {
+                addToBackStack = true;
+            } else if (itemId == R.id.navigation_akademik) {
                 selectedFragment = new AkademikFragment();
-                addToBackStack = true; // Tambahkan ke backstack untuk fragment selain Home
-            } else if (item.getItemId() == R.id.navigation_profile) {
+                addToBackStack = true;
+            } else if (itemId == R.id.navigation_profile) {
                 selectedFragment = new ProfileFragment();
-                addToBackStack = true; // Tambahkan ke backstack untuk fragment selain Home
+                addToBackStack = true;
             }
 
             if (selectedFragment != null) {
@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void navigateToProfile() {
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
-        bottomNavigationView.setSelectedItemId(R.id.navigation_profile); // Set tab ke Profile
+        bottomNavigationView.setSelectedItemId(R.id.navigation_profile);
         navigateToFragment(new ProfileFragment(), true);
     }
 
@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
                 .replace(R.id.fragment_container, fragment);
 
         if (addToBackStack) {
-            transaction.addToBackStack(null); // Tambahkan ke backstack
+            transaction.addToBackStack(null);
         }
 
         transaction.commit();
@@ -101,24 +101,21 @@ public class MainActivity extends AppCompatActivity {
             public void handleOnBackPressed() {
                 Fragment currentFragment = getSupportFragmentManager().findFragmentById(R.id.fragment_container);
 
-                // Tangani fragment utama
                 if (currentFragment instanceof HomeFragment
                         || currentFragment instanceof ProfileFragment
                         || currentFragment instanceof AkademikFragment
                         || currentFragment instanceof KelasFragment) {
 
                     if (doubleBackToExitPressedOnce) {
-                        finish(); // Tutup aplikasi
+                        finish();
                         return;
                     }
 
                     doubleBackToExitPressedOnce = true;
                     Toast.makeText(MainActivity.this, "Tekan sekali lagi untuk keluar", Toast.LENGTH_SHORT).show();
 
-                    // Reset status setelah 2 detik
                     new Handler().postDelayed(() -> doubleBackToExitPressedOnce = false, 1500);
                 } else {
-                    // Gunakan default behavior untuk fragment lain
                     if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
                         getSupportFragmentManager().popBackStack();
                     } else {

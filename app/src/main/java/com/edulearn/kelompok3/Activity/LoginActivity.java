@@ -8,11 +8,13 @@ import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.edulearn.kelompok3.R;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
+import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 
 public class LoginActivity extends AppCompatActivity {
     private FirebaseAuth auth;
-
     private EditText etIdentitas, etPassword;
     private Button btnSignIn;
     private TextView hubAdmin;
@@ -20,69 +22,69 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        FirebaseApp.initializeApp(this); // Inisialisasi Firebase
         setContentView(R.layout.activity_login);
-        auth = FirebaseAuth.getInstance();
 
+        auth = FirebaseAuth.getInstance();
         etIdentitas = findViewById(R.id.etIdentitas);
         etPassword = findViewById(R.id.etPassword);
         btnSignIn = findViewById(R.id.btnSignIn);
         hubAdmin = findViewById(R.id.hubadmin);
 
         hubAdmin.setOnClickListener(v -> {
-            Intent intent = new Intent(LoginActivity.this, RegisterActivity.class);
-            startActivity(intent);
+            startActivity(new Intent(LoginActivity.this, RegisterActivity.class));
         });
 
         btnSignIn.setOnClickListener(v -> {
-            String nisn = etIdentitas.getText().toString().trim();
+            String identitas = etIdentitas.getText().toString().trim();
             String password = etPassword.getText().toString().trim();
 
-            if (nisn.isEmpty() || password.isEmpty()) {
-                showAlert("Peringatan", "Username dan Password tidak boleh kosong!");
+            if (identitas.isEmpty() || password.isEmpty()) {
+                showAlert("Peringatan", "Identitas dan Password tidak boleh kosong!");
             } else {
-                login(nisn, password);
+                login(identitas, password);
             }
         });
     }
 
-    private void openWhatsApp(String phoneNumber, String message) {
-        String url = "https://wa.me/" + phoneNumber + "?text=" + message;
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setData(android.net.Uri.parse(url));
-        startActivity(intent);
-    }
-
-    private void login(String username, String password) {
+    private void login(String identitas, String password) {
         if (password.length() < 8) {
-            showAlert("Peringatan", "Password harus minimal 8 karakter.");
+            showAlert("Peringatan", "Password minimal 8 karakter.");
             return;
         }
 
-        String email = username + "@edulearn.id";
+        // Cek apakah input mengandung @, jika tidak tambahkan domain otomatis
+        String emailFinal = identitas.contains("@") ? identitas : identitas + "@edulearn.id";
 
-        auth.signInWithEmailAndPassword(email, password)
+        auth.signInWithEmailAndPassword(emailFinal, password)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-
-                        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-                        startActivity(intent);
+                        // Berhasil login, pindah ke MainActivity
+                        startActivity(new Intent(LoginActivity.this, MainActivity.class));
                         finish();
-
                     } else {
-                        showAlert("Login Gagal", "username atau password salah.");
+                        // Ambil pesan error asli dari Firebase agar tidak crash
+                        String pesanError = "Gagal login.";
+                        if (task.getException() != null) {
+                            Exception e = task.getException();
+                            if (e instanceof FirebaseAuthInvalidUserException) {
+                                pesanError = "User/Email tidak ditemukan.";
+                            } else if (e instanceof FirebaseAuthInvalidCredentialsException) {
+                                pesanError = "Password salah.";
+                            } else {
+                                pesanError = e.getMessage();
+                            }
+                        }
+                        showAlert("Login Gagal", pesanError);
                     }
                 });
     }
 
     private void showAlert(String title, String message) {
-        AlertDialog alertDialog = new AlertDialog.Builder(this)
+        new AlertDialog.Builder(this)
                 .setTitle(title)
                 .setMessage(message)
-                .setCancelable(false)
                 .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
                 .show();
-
-        alertDialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                .setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.dark_text));
     }
 }

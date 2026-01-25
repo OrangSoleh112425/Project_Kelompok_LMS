@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "328255031286",
+    "firebase_url": "https://db-lms-edulearn-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "db-lms-edulearn",
     "storage_bucket": "db-lms-edulearn.firebasestorage.app"
   },

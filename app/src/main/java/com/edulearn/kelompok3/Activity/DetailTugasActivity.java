@@ -8,21 +8,21 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.*;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.edulearn.kelompok3.ApiConfig;
 import com.edulearn.kelompok3.R;
 import com.edulearn.kelompok3.Utils.ImageUtil;
-import com.edulearn.kelompok3.Utils.SharedPreferencesUtil;  // Import util yang sudah kita buat
-
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.edulearn.kelompok3.Utils.SharedPreferencesUtil;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -40,17 +40,28 @@ public class DetailTugasActivity extends AppCompatActivity {
     private Button btnKirim;
     private int id;
     private List<Uri> imageUris = new ArrayList<>();
-    private RequestQueue requestQueue;
     private String tanggalTenggat;
     private ProgressDialog loadingOverlay;
+
+    // Firebase
+    private DatabaseReference databaseRef;
+    private FirebaseUser currentUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail_tugas);
 
+        // Inisialisasi Firebase
+        currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            showErrorAndExit("User belum login!");
+            return;
+        }
+
+        databaseRef = FirebaseDatabase.getInstance().getReference();
+
         initUI();
-        requestQueue = Volley.newRequestQueue(this);
 
         Intent intent = getIntent();
         id = intent.getIntExtra("id", -1);
@@ -60,7 +71,7 @@ public class DetailTugasActivity extends AppCompatActivity {
             return;
         }
 
-        getDataFromAPI();
+        getDataFromFirebase();
         getNilaiTugas();
     }
 
@@ -78,42 +89,36 @@ public class DetailTugasActivity extends AppCompatActivity {
         btnKirim.setOnClickListener(v -> submitTask());
     }
 
-    private void getDataFromAPI() {
-        String url = ApiConfig.BASE_URL + "api/tugas/" + id;
-        Map<String, String> headers = getHeaders();
-
+    private void getDataFromFirebase() {
         ProgressDialog progressDialog = createProgressDialog("Memuat data tugas...");
         progressDialog.show();
 
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
-                response -> {
-                    progressDialog.dismiss();
-                    try {
-                        if (response.getString("status").equals("success")) {
-                            JSONObject data = response.getJSONArray("data").getJSONObject(0);
-                            tvJudulTgs.setText(data.optString("judul_tugas", "Judul tidak tersedia"));
-                            tanggalTenggat = data.optString("deadline", "Tidak ada deadline");  // Menyimpan tanggal tenggat
-                            tvTenggat.setText("Deadline: " + tanggalTenggat);
-                            tvDeskripsi.setText(data.optString("deskripsi", "Deskripsi tidak tersedia"));
-                        } else {
-                            showError("Gagal mengambil data tugas.");
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        showError(e.getMessage());
-                    }
-                },
-                error -> {
-                    progressDialog.dismiss();
-                    showError(error.getMessage());
-                }) {
-            @Override
-            public Map<String, String> getHeaders() {
-                return headers;
-            }
-        };
+        // Path: tugas/{id}
+        databaseRef.child("tugas").child(String.valueOf(id))
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        progressDialog.dismiss();
 
-        requestQueue.add(jsonObjectRequest);
+                        if (snapshot.exists()) {
+                            String judulTugas = snapshot.child("judul_tugas").getValue(String.class);
+                            tanggalTenggat = snapshot.child("deadline").getValue(String.class);
+                            String deskripsi = snapshot.child("deskripsi").getValue(String.class);
+
+                            tvJudulTgs.setText(judulTugas != null ? judulTugas : "Judul tidak tersedia");
+                            tvTenggat.setText("Deadline: " + (tanggalTenggat != null ? tanggalTenggat : "Tidak ada deadline"));
+                            tvDeskripsi.setText(deskripsi != null ? deskripsi : "Deskripsi tidak tersedia");
+                        } else {
+                            showError("Data tugas tidak ditemukan.");
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        progressDialog.dismiss();
+                        showError("Error: " + error.getMessage());
+                    }
+                });
     }
 
     private void showExistingFoto(String fotoBase64) {
@@ -147,43 +152,39 @@ public class DetailTugasActivity extends AppCompatActivity {
     }
 
     private void getNilaiTugas() {
-        String url = ApiConfig.BASE_URL + "api/tugas/" + id + "/nilai";
-        Map<String, String> headers = getHeaders();
-
-        // Menampilkan ProgressDialog utama untuk pemuatan nilai
         ProgressDialog progressDialog = new ProgressDialog(DetailTugasActivity.this);
         progressDialog.setMessage("Memuat nilai...");
         progressDialog.setCancelable(false);
         progressDialog.show();
 
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
-                response -> {
-                    progressDialog.dismiss(); // Menyembunyikan ProgressDialog setelah proses selesai
+        String uid = currentUser.getUid();
 
-                    try {
-                        if (response.getString("status").equals("success")) {
-                            // Ambil data JSON
-                            JSONObject data = response.optJSONObject("data");
+        // Path: pengumpulan_tugas/{uid}/{id_tugas}
+        databaseRef.child("pengumpulan_tugas")
+                .child(uid)
+                .child(String.valueOf(id))
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        progressDialog.dismiss();
 
-                            if (data == null) {
-                                tvNilai.setText("Nilai: tidak ada");
-                                tvStatus.setText("Belum dikumpulkan");
-                                return;
-                            }
+                        if (snapshot.exists()) {
+                            // Ambil nilai
+                            String nilai = snapshot.child("grade").getValue(String.class);
+                            tvNilai.setText("Nilai: " + (nilai != null ? nilai : "belum dinilai"));
 
-                            String nilai = data.isNull("grade") ? "belum dinilai" : data.optString("grade");
-                            tvNilai.setText("Nilai: " + nilai);
+                            // Ambil tanggal pengumpulan
+                            String tanggalPengumpulan = snapshot.child("tanggal").getValue(String.class);
 
-                            String tanggalPengumpulan = data.optString("tanggal", null);
-
-                            // Cek apakah tanggal tenggat dan tanggal pengumpulan ada
+                            // Cek status
                             if (tanggalTenggat != null && tanggalPengumpulan != null) {
                                 String statusTugas = checkTugasStatus(tanggalTenggat, tanggalPengumpulan);
                                 tvStatus.setText(statusTugas);
                             }
 
-                            String fotoBase64 = data.optString("foto", null);
-                            String savedFotoBase64 = SharedPreferencesUtil.getSavedImageFromPreferences(this);
+                            // Ambil foto
+                            String fotoBase64 = snapshot.child("foto").getValue(String.class);
+                            String savedFotoBase64 = SharedPreferencesUtil.getSavedImageFromPreferences(DetailTugasActivity.this);
 
                             if (fotoBase64 != null && !fotoBase64.isEmpty()) {
                                 showLoadingOverlay();
@@ -191,7 +192,7 @@ public class DetailTugasActivity extends AppCompatActivity {
                                     try {
                                         Thread.sleep(2000);
                                         if (!fotoBase64.equals(savedFotoBase64)) {
-                                            SharedPreferencesUtil.saveImageToPreferences(this, fotoBase64);
+                                            SharedPreferencesUtil.saveImageToPreferences(DetailTugasActivity.this, fotoBase64);
                                             runOnUiThread(() -> {
                                                 showExistingFoto(fotoBase64);
                                                 hideLoadingOverlay();
@@ -208,33 +209,25 @@ public class DetailTugasActivity extends AppCompatActivity {
                                 }).start();
                             }
                         } else {
-                            showError("Gagal mendapatkan nilai tugas.");
+                            // Belum ada pengumpulan
+                            tvNilai.setText("Nilai: tidak ada");
+                            tvStatus.setText("Belum dikumpulkan");
                         }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        showError(e.getMessage());
                     }
-                },
-                error -> {
-                    progressDialog.dismiss();
-                    showError(error.getMessage());
-                }) {
-            @Override
-            public Map<String, String> getHeaders() {
-                return headers;
-            }
-        };
 
-        requestQueue.add(jsonObjectRequest);
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        progressDialog.dismiss();
+                        showError("Error: " + error.getMessage());
+                    }
+                });
     }
-
 
     private String checkTugasStatus(String tanggalTenggat, String tanggalPengumpulan) {
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
             Date tenggatTugas = sdf.parse(tanggalTenggat);
             Date tanggalTugas = sdf.parse(tanggalPengumpulan);
-            Date tanggalSekarang = new Date();
 
             if (tanggalTugas != null && tenggatTugas != null) {
                 if (tanggalTugas.after(tenggatTugas)) {
@@ -249,21 +242,16 @@ public class DetailTugasActivity extends AppCompatActivity {
         return "Status Tidak Diketahui";
     }
 
-
     private void showLoadingOverlay() {
-        // Membuat instance ProgressDialog jika belum ada
         if (loadingOverlay == null) {
             loadingOverlay = new ProgressDialog(DetailTugasActivity.this);
             loadingOverlay.setMessage("Sedang memuat...");
             loadingOverlay.setCancelable(false);
         }
-
-
         loadingOverlay.show();
     }
 
     private void hideLoadingOverlay() {
-        // Menyembunyikan ProgressDialog setelah selesai
         if (loadingOverlay != null && loadingOverlay.isShowing()) {
             loadingOverlay.dismiss();
         }
@@ -282,41 +270,41 @@ public class DetailTugasActivity extends AppCompatActivity {
             return;
         }
 
-        String url = ApiConfig.BASE_URL + "api/submit-tugas";
-        Map<String, String> headers = getHeaders();
-        JSONObject jsonParams = new JSONObject();
+        ProgressDialog progressDialog = createProgressDialog("Mengirim tugas...");
+        progressDialog.show();
 
-        try {
-            jsonParams.put("id_tugas", id);
-            jsonParams.put("foto", ImageUtil.compressImageAndConvertToBase64(this, imageUris.get(0)));
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return;
-        }
+        String uid = currentUser.getUid();
+        String fotoBase64 = ImageUtil.compressImageAndConvertToBase64(this, imageUris.get(0));
 
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, jsonParams,
-                response -> {
+        // Siapkan data untuk dikirim
+        Map<String, Object> tugasData = new HashMap<>();
+        tugasData.put("id_tugas", id);
+        tugasData.put("foto", fotoBase64);
+        tugasData.put("tanggal", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
+        tugasData.put("grade", null); // Nilai belum ada
+
+        // Path: pengumpulan_tugas/{uid}/{id_tugas}
+        databaseRef.child("pengumpulan_tugas")
+                .child(uid)
+                .child(String.valueOf(id))
+                .setValue(tugasData)
+                .addOnSuccessListener(aVoid -> {
+                    progressDialog.dismiss();
                     Toast.makeText(DetailTugasActivity.this, "Tugas berhasil dikirim!", Toast.LENGTH_SHORT).show();
-                    // Simpan foto yang baru dikirim ke SharedPreferences
-                    String fotoBase64 = ImageUtil.compressImageAndConvertToBase64(this, imageUris.get(0));
-                    SharedPreferencesUtil.saveImageToPreferences(this, fotoBase64);
 
+                    // Simpan foto ke SharedPreferences
+                    SharedPreferencesUtil.saveImageToPreferences(DetailTugasActivity.this, fotoBase64);
 
                     recreate();
                     loadSavedFoto();
-                },
-                error -> showError("Gagal mengirim tugas.")
-        ) {
-            @Override
-            public Map<String, String> getHeaders() {
-                return headers;
-            }
-        };
-
-        requestQueue.add(jsonObjectRequest);
+                })
+                .addOnFailureListener(e -> {
+                    progressDialog.dismiss();
+                    showError("Gagal mengirim tugas: " + e.getMessage());
+                });
     }
 
-
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
@@ -324,7 +312,6 @@ public class DetailTugasActivity extends AppCompatActivity {
             Uri imageUri = data.getData();
             if (imageUri != null) {
                 if (imageUris.size() >= 1) {
-                    // Ganti Toast dengan AlertDialog
                     showAlertDialog("Anda hanya bisa mengirim 1 foto.");
                     return;
                 }
@@ -346,31 +333,19 @@ public class DetailTugasActivity extends AppCompatActivity {
     }
 
     private void showAlertDialog(String message) {
-        // Membuat AlertDialog
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Peringatan")
                 .setMessage(message)
                 .setCancelable(false)
                 .setPositiveButton("OK", (dialog, id) -> dialog.dismiss());
 
-
         AlertDialog dialog = builder.create();
         dialog.show();
-
 
         Button okButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         if (okButton != null) {
             okButton.setTextColor(getResources().getColor(R.color.dark_text));
         }
-    }
-
-
-    private Map<String, String> getHeaders() {
-        String token = getSharedPreferences("user_session", MODE_PRIVATE).getString("user_token", "");
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Authorization", "Bearer " + token);
-        headers.put("Accept", "application/json");
-        return headers;
     }
 
     private void openGallery() {

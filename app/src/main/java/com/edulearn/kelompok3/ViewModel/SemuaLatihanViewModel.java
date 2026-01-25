@@ -2,33 +2,34 @@ package com.edulearn.kelompok3.ViewModel;
 
 import android.app.Application;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.toolbox.JsonArrayRequest;
-import com.android.volley.toolbox.Volley;
+
 import com.edulearn.kelompok3.Model.ModelLatihanSoal;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class SemuaLatihanViewModel extends AndroidViewModel {
 
     private static final String TAG = "SemuaLatihanViewModel";
-    // Endpoint untuk mengambil semua latihan soal (mungkin perlu disesuaikan)
-    private static final String URL_GET_ALL_LATIHAN = "https://sdnkalisat.com/api/latihan";
 
     private final MutableLiveData<List<ModelLatihanSoal>> latihanSoalListLiveData = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
-    private final RequestQueue requestQueue;
+    private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>();
+    private final DatabaseReference databaseRef;
 
     public SemuaLatihanViewModel(@NonNull Application application) {
         super(application);
-        requestQueue = Volley.newRequestQueue(application);
+        databaseRef = FirebaseDatabase.getInstance().getReference();
     }
 
     public LiveData<List<ModelLatihanSoal>> getLatihanSoalListLiveData() {
@@ -39,34 +40,58 @@ public class SemuaLatihanViewModel extends AndroidViewModel {
         return errorMessage;
     }
 
-    public void fetchSemuaLatihan() {
-        JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(Request.Method.GET, URL_GET_ALL_LATIHAN, null,
-                response -> {
-                    try {
-                        List<ModelLatihanSoal> latihanSoalList = new ArrayList<>();
-                        for (int i = 0; i < response.length(); i++) {
-                            JSONObject jsonObject = response.getJSONObject(i);
-                            ModelLatihanSoal latihanSoal = new ModelLatihanSoal();
-                            latihanSoal.setId(jsonObject.getInt("id"));
-                            latihanSoal.setJudulLatihan(jsonObject.getString("judul_latihan"));
-                            latihanSoal.setJumlahSoal(jsonObject.getInt("jumlah_soal"));
-                            // Kita juga perlu nama mapel, kita asumsikan API mengembalikannya
-                            if (jsonObject.has("nama_mapel")) {
-                                latihanSoal.setNamaMapel(jsonObject.getString("nama_mapel"));
-                            }
-                            latihanSoalList.add(latihanSoal);
-                        }
-                        latihanSoalListLiveData.setValue(latihanSoalList);
-                    } catch (JSONException e) {
-                        Log.e(TAG, "JSON Parsing error: " + e.getMessage());
-                        errorMessage.setValue("Gagal memproses data dari server.");
-                    }
-                },
-                error -> {
-                    Log.e(TAG, "Volley error: " + error.toString());
-                    errorMessage.setValue("Gagal mengambil data. Periksa koneksi internet Anda.");
-                });
+    public LiveData<Boolean> getIsLoading() {
+        return isLoading;
+    }
 
-        requestQueue.add(jsonArrayRequest);
+    public void fetchSemuaLatihan() {
+        isLoading.postValue(true);
+
+        // Path: latihan_soal (semua latihan)
+        databaseRef.child("latihan_soal")
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        isLoading.postValue(false);
+
+                        if (!snapshot.exists()) {
+                            latihanSoalListLiveData.setValue(new ArrayList<>());
+                            errorMessage.setValue("Tidak ada latihan soal tersedia");
+                            return;
+                        }
+
+                        List<ModelLatihanSoal> latihanSoalList = new ArrayList<>();
+
+                        for (DataSnapshot latihanSnapshot : snapshot.getChildren()) {
+                            try {
+                                ModelLatihanSoal latihanSoal = new ModelLatihanSoal();
+
+                                Integer id = latihanSnapshot.child("id").getValue(Integer.class);
+                                String judulLatihan = latihanSnapshot.child("judul_latihan").getValue(String.class);
+                                Integer jumlahSoal = latihanSnapshot.child("jumlah_soal").getValue(Integer.class);
+                                String namaMapel = latihanSnapshot.child("nama_mapel").getValue(String.class);
+
+                                if (id != null) latihanSoal.setId(id);
+                                if (judulLatihan != null) latihanSoal.setJudulLatihan(judulLatihan);
+                                if (jumlahSoal != null) latihanSoal.setJumlahSoal(jumlahSoal);
+                                if (namaMapel != null) latihanSoal.setNamaMapel(namaMapel);
+
+                                latihanSoalList.add(latihanSoal);
+
+                            } catch (Exception e) {
+                                Log.e(TAG, "Error parsing latihan: " + e.getMessage());
+                            }
+                        }
+
+                        latihanSoalListLiveData.setValue(latihanSoalList);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        isLoading.postValue(false);
+                        Log.e(TAG, "Firebase error: " + error.getMessage());
+                        errorMessage.setValue("Gagal mengambil data: " + error.getMessage());
+                    }
+                });
     }
 }

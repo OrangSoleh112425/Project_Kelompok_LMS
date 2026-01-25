@@ -1,111 +1,97 @@
 package com.edulearn.kelompok3.ViewModel;
 
 import android.app.Application;
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 
-import com.android.volley.DefaultRetryPolicy;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
-import com.edulearn.kelompok3.ApiConfig;
 import com.edulearn.kelompok3.Model.MataPelajaran;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class MataPelajaranViewModel extends AndroidViewModel {
+
     private final MutableLiveData<List<MataPelajaran>> mataPelajaranListLiveData = new MutableLiveData<>();
-    private final RequestQueue requestQueue;
+    private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>();
+    private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
+    private final DatabaseReference databaseRef;
 
     public MataPelajaranViewModel(@NonNull Application application) {
         super(application);
-        requestQueue = Volley.newRequestQueue(application.getApplicationContext());
+        databaseRef = FirebaseDatabase.getInstance().getReference();
     }
 
     public MutableLiveData<List<MataPelajaran>> getMataPelajaranListLiveData() {
         return mataPelajaranListLiveData;
     }
 
+    public MutableLiveData<Boolean> getIsLoading() {
+        return isLoading;
+    }
+
+    public MutableLiveData<String> getErrorMessage() {
+        return errorMessage;
+    }
+
     public void fetchMataPelajaran() {
-        // PERBAIKAN: Menambahkan .php ke URL
-        String url = ApiConfig.BASE_URL + "api/mapel-kelas.php";
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
-        // Ambil token dari SharedPreferences
-        SharedPreferences sharedPreferences = getApplication().getSharedPreferences("user_session", Context.MODE_PRIVATE);
-        String token = sharedPreferences.getString("user_token", "");
-
-        if (token.isEmpty()) {
-            Toast.makeText(getApplication(), "Token tidak tersedia. Silakan login ulang.", Toast.LENGTH_SHORT).show();
+        if (currentUser == null) {
+            errorMessage.postValue("User belum login");
             return;
         }
 
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
-                response -> {
-                    try {
-                        Log.d("API_RESPONSE", response.toString());
-                        if (response.has("status") && response.getString("status").equals("success") && response.has("data")) {
-                            List<MataPelajaran> mataPelajaranList = new ArrayList<>();
-                            JSONArray dataArray = response.getJSONArray("data");
+        String uid = currentUser.getUid();
+        isLoading.postValue(true);
 
-                            for (int i = 0; i < dataArray.length(); i++) {
-                                JSONObject dataObj = dataArray.getJSONObject(i);
-                                int id = dataObj.getInt("id");
-                                String namaMapel = dataObj.getString("nama_mapel");
-                                String namaGuru = dataObj.getString("nama_guru");
-                                mataPelajaranList.add(new MataPelajaran(id, namaMapel, namaGuru));
-                            }
+        // Path: mapel_kelas/{uid} atau mapel_kelas (jika sama untuk semua)
+        databaseRef.child("mapel_kelas").child(uid)
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        isLoading.postValue(false);
 
-                            // Update LiveData
-                            mataPelajaranListLiveData.postValue(mataPelajaranList);
-                        } else {
-                            Toast.makeText(getApplication(), "Respons JSON tidak valid.", Toast.LENGTH_SHORT).show();
+                        if (!snapshot.exists()) {
+                            mataPelajaranListLiveData.postValue(new ArrayList<>());
+                            errorMessage.postValue("Tidak ada mata pelajaran");
+                            return;
                         }
-                    } catch (JSONException e) {
-                        Log.e("JSON_ERROR", "Error parsing JSON: " + e.getMessage());
-                        e.printStackTrace();
-                        Toast.makeText(getApplication(), "Kesalahan parsing data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                },
-                error -> {
-                    Log.e("VOLLEY_ERROR", "Error: " + error.toString());
-                    if (error.networkResponse != null) {
-                        String errorMsg = "Error: " + error.networkResponse.statusCode + " - " + new String(error.networkResponse.data);
-                        Toast.makeText(getApplication(), errorMsg, Toast.LENGTH_LONG).show();
-                    } else if (error instanceof com.android.volley.TimeoutError) {
-                        Toast.makeText(getApplication(), "Error: Timeout dari server. Coba lagi.", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(getApplication(), "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                }) {
-            @Override
-            public Map<String, String> getHeaders() {
-                Map<String, String> headers = new HashMap<>();
-                headers.put("Authorization", "Bearer " + token);
-                headers.put("Accept", "application/json");
-                return headers;
-            }
-        };
 
-        jsonObjectRequest.setRetryPolicy(new DefaultRetryPolicy(
-                5000,
-                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        ));
+                        List<MataPelajaran> mataPelajaranList = new ArrayList<>();
 
-        requestQueue.add(jsonObjectRequest);
+                        for (DataSnapshot mapelSnapshot : snapshot.getChildren()) {
+                            try {
+                                Integer id = mapelSnapshot.child("id").getValue(Integer.class);
+                                String namaMapel = mapelSnapshot.child("nama_mapel").getValue(String.class);
+                                String namaGuru = mapelSnapshot.child("nama_guru").getValue(String.class);
+
+                                if (id != null && namaMapel != null && namaGuru != null) {
+                                    mataPelajaranList.add(new MataPelajaran(id, namaMapel, namaGuru));
+                                }
+                            } catch (Exception e) {
+                                Log.e("MataPelajaranVM", "Error parsing: " + e.getMessage());
+                            }
+                        }
+
+                        mataPelajaranListLiveData.postValue(mataPelajaranList);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        isLoading.postValue(false);
+                        errorMessage.postValue("Error: " + error.getMessage());
+                        Log.e("MataPelajaranVM", "Firebase error", error.toException());
+                    }
+                });
     }
 }

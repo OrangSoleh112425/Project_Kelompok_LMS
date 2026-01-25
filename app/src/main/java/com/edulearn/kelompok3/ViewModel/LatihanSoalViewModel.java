@@ -5,16 +5,12 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.MutableLiveData;
 
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
-import com.edulearn.kelompok3.ApiConfig;
 import com.edulearn.kelompok3.Model.ModelLatihanSoal;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,11 +20,11 @@ public class LatihanSoalViewModel extends AndroidViewModel {
     private final MutableLiveData<List<ModelLatihanSoal>> latihanSoalListLiveData = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
-    private final RequestQueue requestQueue;
+    private final DatabaseReference databaseRef;
 
     public LatihanSoalViewModel(@NonNull Application application) {
         super(application);
-        requestQueue = Volley.newRequestQueue(application.getApplicationContext());
+        databaseRef = FirebaseDatabase.getInstance().getReference();
     }
 
     public MutableLiveData<List<ModelLatihanSoal>> getLatihanSoalListLiveData() {
@@ -44,47 +40,48 @@ public class LatihanSoalViewModel extends AndroidViewModel {
     }
 
     public void fetchLatihanSoal(int idMapel) {
-        // URL baru yang menunjuk ke file PHP kita dengan parameter id_mapel
-        String url = ApiConfig.BASE_URL + "api/latihan_soal.php?id_mapel=" + idMapel;
-
         isLoading.postValue(true);
 
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
-                response -> {
-                    isLoading.postValue(false);
-                    try {
-                        if ("success".equals(response.getString("status"))) {
-                            JSONArray dataArray = response.getJSONArray("data");
-                            List<ModelLatihanSoal> list = new ArrayList<>();
-                            for (int i = 0; i < dataArray.length(); i++) {
-                                JSONObject obj = dataArray.getJSONObject(i);
+        // Path: latihan_soal (filter by id_mapel)
+        databaseRef.child("latihan_soal")
+                .orderByChild("id_mapel")
+                .equalTo(idMapel)
+                .addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        isLoading.postValue(false);
 
-                                // Parsing data sesuai dengan model dan tabel baru
-                                int id = obj.getInt("id");
-                                String judul = obj.getString("judul_latihan");
-                                int jumlahSoal = obj.getInt("jumlah_soal");
-
-                                // Buat objek ModelLatihanSoal dengan konstruktor baru
-                                list.add(new ModelLatihanSoal(id, judul, jumlahSoal));
-                            }
-                            latihanSoalListLiveData.postValue(list);
-                        } else {
-                            String message = response.optString("message", "Gagal mengambil data latihan soal.");
-                            errorMessage.postValue(message);
-                            latihanSoalListLiveData.postValue(new ArrayList<>()); // Kirim list kosong
+                        if (!snapshot.exists()) {
+                            latihanSoalListLiveData.postValue(new ArrayList<>());
+                            errorMessage.postValue("Tidak ada latihan untuk mata pelajaran ini");
+                            return;
                         }
-                    } catch (JSONException e) {
-                        errorMessage.postValue("Kesalahan parsing data: " + e.getMessage());
+
+                        List<ModelLatihanSoal> list = new ArrayList<>();
+
+                        for (DataSnapshot latihanSnapshot : snapshot.getChildren()) {
+                            try {
+                                Integer id = latihanSnapshot.child("id").getValue(Integer.class);
+                                String judul = latihanSnapshot.child("judul_latihan").getValue(String.class);
+                                Integer jumlahSoal = latihanSnapshot.child("jumlah_soal").getValue(Integer.class);
+
+                                if (id != null && judul != null && jumlahSoal != null) {
+                                    list.add(new ModelLatihanSoal(id, judul, jumlahSoal));
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        latihanSoalListLiveData.postValue(list);
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        isLoading.postValue(false);
+                        errorMessage.postValue("Error: " + error.getMessage());
                         latihanSoalListLiveData.postValue(new ArrayList<>());
                     }
-                },
-                error -> {
-                    isLoading.postValue(false);
-                    String errorMsg = (error.getMessage() != null) ? error.getMessage() : "Kesalahan jaringan";
-                    errorMessage.postValue(errorMsg);
-                    latihanSoalListLiveData.postValue(new ArrayList<>());
                 });
-
-        requestQueue.add(jsonObjectRequest);
     }
 }

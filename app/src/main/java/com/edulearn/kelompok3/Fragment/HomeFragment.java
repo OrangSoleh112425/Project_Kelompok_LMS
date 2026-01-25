@@ -1,12 +1,12 @@
 package com.edulearn.kelompok3.Fragment;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,6 +28,8 @@ import com.edulearn.kelompok3.Model.ModelJadwalGrouped;
 import com.edulearn.kelompok3.Model.Pengumuman;
 import com.edulearn.kelompok3.R;
 import com.edulearn.kelompok3.ViewModel.JadwalViewModel;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -37,46 +39,41 @@ import java.util.Map;
 
 public class HomeFragment extends Fragment {
 
-    private String userToken;
     private TextView tvWelcome, tvNoJadwal;
     private RecyclerView rvJadwalHariIni, rvPengumuman;
     private HomeJadwalAdapter homeJadwalAdapter;
     private PengumumanAdapter pengumumanAdapter;
     private JadwalViewModel jadwalViewModel;
     private RequestQueue requestQueue;
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-    }
+    private ProgressBar loading;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        Log.d("FLOW", "HomeFragment onCreateView");
         View rootView = inflater.inflate(R.layout.fragment_home, container, false);
 
-        // Inisialisasi Views
         initViews(rootView);
-
-        // Setup Header
         setupHeader(rootView);
-
-        // Setup Jadwal
         setupJadwal();
-
-        // Setup Pengumuman
         setupPengumuman();
-
-        // Setup Listeners
         setupListeners(rootView);
 
         return rootView;
     }
+
+    @Override
+    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        Log.d("FLOW", "HomeFragment onViewCreated");
+    }
+
 
     private void initViews(View rootView) {
         tvWelcome = rootView.findViewById(R.id.tv_welcome);
         rvJadwalHariIni = rootView.findViewById(R.id.rv_jadwal_hari_ini);
         tvNoJadwal = rootView.findViewById(R.id.tv_no_jadwal);
         rvPengumuman = rootView.findViewById(R.id.rv_pengumuman);
+        loading = rootView.findViewById(R.id.loading);
     }
 
     private void setupHeader(View rootView) {
@@ -91,51 +88,54 @@ public class HomeFragment extends Fragment {
 
         TextView tvQuote = rootView.findViewById(R.id.tv_quote);
         String currentDay = getCurrentDay();
-        String quoteForToday;
-        if (quotes.containsKey(currentDay)) {
-            quoteForToday = quotes.get(currentDay);
-        } else {
-            quoteForToday = "Belajar adalah jendela dunia!";
-        }
-        tvQuote.setText(quoteForToday);
+//        tvQuote.setText(quotes.getOrDefault(currentDay, "Belajar adalah jendela dunia!"));
 
-        tvWelcome.setText("Selamat Datang, Arya!");
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null && user.getDisplayName() != null && !user.getDisplayName().isEmpty()) {
+            tvWelcome.setText("Selamat Datang, " + user.getDisplayName() + "!");
+        } else {
+            tvWelcome.setText("Selamat Datang!");
+        }
     }
 
     private void setupJadwal() {
+
         rvJadwalHariIni.setLayoutManager(new LinearLayoutManager(getContext()));
         homeJadwalAdapter = new HomeJadwalAdapter(new ArrayList<>());
         rvJadwalHariIni.setAdapter(homeJadwalAdapter);
+//        loading.setVisibility(View.GONE);
 
-        SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("user_session", requireContext().MODE_PRIVATE);
-        userToken = sharedPreferences.getString("user_token", null);
-
-        jadwalViewModel = new ViewModelProvider(requireActivity()).get(JadwalViewModel.class);
+        // ✅ INIT VIEWMODEL
+        jadwalViewModel = new ViewModelProvider(this).get(JadwalViewModel.class);
         observeViewModel();
 
         requestQueue = Volley.newRequestQueue(requireContext());
-        if (userToken != null && !userToken.isEmpty()) {
-            jadwalViewModel.fetchJadwal(requestQueue, userToken);
+
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            jadwalViewModel.fetchJadwal(user.getUid());
         } else {
-            Log.w("HomeFragment", "User token is null or empty, cannot fetch schedule.");
+            loading.setVisibility(View.GONE);
+            tvNoJadwal.setVisibility(View.VISIBLE);
+            tvNoJadwal.setText("User belum login");
         }
     }
 
-    private void setupPengumuman() {
-        rvPengumuman.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        List<Pengumuman> pengumumanList = new ArrayList<>();
-        
-        // Data Contoh Pengumuman
-        pengumumanList.add(new Pengumuman("PPDB Tahun Ajaran 2024/2025 Telah Dibuka!", "15 Juli 2024", "https://images.unsplash.com/photo-1599837563057-70b3dd153673?w=500"));
-        pengumumanList.add(new Pengumuman("Jadwal Lomba 17 Agustus Tingkat Sekolah", "14 Juli 2024", "https://images.unsplash.com/photo-1565879313438-d65a8a4f6d74?w=500"));
-        pengumumanList.add(new Pengumuman("Informasi Kegiatan Karyawisata Kelas 6", "12 Juli 2024", "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500"));
-
-        pengumumanAdapter = new PengumumanAdapter(getContext(), pengumumanList);
-        rvPengumuman.setAdapter(pengumumanAdapter);
-    }
-
     private void observeViewModel() {
+
+        jadwalViewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
+            loading.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        });
+
         jadwalViewModel.getJadwalGroupedList().observe(getViewLifecycleOwner(), groupedList -> {
+
+            if (groupedList == null || groupedList.isEmpty()) {
+                rvJadwalHariIni.setVisibility(View.GONE);
+                tvNoJadwal.setVisibility(View.VISIBLE);
+                tvNoJadwal.setText("Tidak ada jadwal hari ini.");
+                return;
+            }
+
             String currentDay = getCurrentDay();
             List<ModelJadwalDetail> todaySchedules = new ArrayList<>();
 
@@ -145,13 +145,15 @@ public class HomeFragment extends Fragment {
                     break;
                 }
             }
-            
+
             if (todaySchedules.isEmpty()) {
                 rvJadwalHariIni.setVisibility(View.GONE);
                 tvNoJadwal.setVisibility(View.VISIBLE);
+                tvNoJadwal.setText("Tidak ada jadwal hari ini.");
             } else {
                 rvJadwalHariIni.setVisibility(View.VISIBLE);
                 tvNoJadwal.setVisibility(View.GONE);
+
                 if (todaySchedules.size() > 3) {
                     homeJadwalAdapter.updateData(todaySchedules.subList(0, 3));
                 } else {
@@ -162,35 +164,47 @@ public class HomeFragment extends Fragment {
 
         jadwalViewModel.getErrorMessage().observe(getViewLifecycleOwner(), error -> {
             if (error != null && !error.isEmpty()) {
-                Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
+                rvJadwalHariIni.setVisibility(View.GONE);
+                tvNoJadwal.setVisibility(View.VISIBLE);
+                tvNoJadwal.setText("⚠️ Gagal memuat jadwal.");
+                Toast.makeText(getContext(), error, Toast.LENGTH_SHORT).show();
             }
         });
     }
 
+    private void setupPengumuman() {
+
+        rvPengumuman.setLayoutManager(
+                new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+
+        List<Pengumuman> pengumumanList = new ArrayList<>();
+        pengumumanList.add(new Pengumuman("PPDB 2024/2025 Dibuka", "15 Juli 2024",
+                "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500"));
+        pengumumanList.add(new Pengumuman("Lomba 17 Agustus", "14 Juli 2024",
+                "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=500"));
+
+        pengumumanAdapter = new PengumumanAdapter(getContext(), pengumumanList);
+        rvPengumuman.setAdapter(pengumumanAdapter);
+    }
+
     private void setupListeners(View rootView) {
-        rootView.findViewById(R.id.tentang_card).setOnClickListener(v -> {
-            startActivity(new Intent(getActivity(), TentangActivity.class));
-        });
 
-        rootView.findViewById(R.id.panduan_card).setOnClickListener(v -> {
-            startActivity(new Intent(getActivity(), PanduanActivity.class));
-        });
+        rootView.findViewById(R.id.tentang_card)
+                .setOnClickListener(v -> startActivity(new Intent(getActivity(), TentangActivity.class)));
 
-        rootView.findViewById(R.id.materi_card).setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Fitur Materi segera hadir!", Toast.LENGTH_SHORT).show();
-        });
+        rootView.findViewById(R.id.panduan_card)
+                .setOnClickListener(v -> startActivity(new Intent(getActivity(), PanduanActivity.class)));
 
-        rootView.findViewById(R.id.tv_see_all_jadwal).setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), DetailJadwalActivity.class);
-            intent.putExtra("user_token", userToken);
-            startActivity(intent);
-        });
+        rootView.findViewById(R.id.materi_card)
+                .setOnClickListener(v -> Toast.makeText(getContext(), "Fitur segera hadir", Toast.LENGTH_SHORT).show());
+
+        rootView.findViewById(R.id.tv_see_all_jadwal)
+                .setOnClickListener(v -> startActivity(new Intent(getActivity(), DetailJadwalActivity.class)));
     }
 
     private String getCurrentDay() {
         Calendar calendar = Calendar.getInstance();
-        int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
-        switch (dayOfWeek) {
+        switch (calendar.get(Calendar.DAY_OF_WEEK)) {
             case Calendar.MONDAY: return "Senin";
             case Calendar.TUESDAY: return "Selasa";
             case Calendar.WEDNESDAY: return "Rabu";

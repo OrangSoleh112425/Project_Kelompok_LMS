@@ -1,8 +1,12 @@
 package com.edulearn.kelompok3.Activity;
 
+import static androidx.core.content.ContextCompat.startActivity;
+
 import android.content.Intent;
 import android.content.SharedPreferences;
+import com.google.firebase.auth.FirebaseAuth;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,30 +18,22 @@ public class IntroActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Log.d("FLOW", "IntroActivity opened");
+
         setContentView(R.layout.activity_intro);
 
-        // Periksa token di SharedPreferences
-        SharedPreferences sharedPreferences = getSharedPreferences("user_session", MODE_PRIVATE);
-        String token = sharedPreferences.getString("user_token", null);
-
-        if (token != null && !token.isEmpty()) {
-            // Jika token ditemukan, langsung masuk ke MainActivity
-            Intent intent = new Intent(IntroActivity.this, MainActivity.class);
-            intent.putExtra("user_token", token);
-            startActivity(intent);
-            finish();
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+            startActivity(new Intent(this, MainActivity.class));
+            finish(); // WAJIB
         } else {
-            // Jika token tidak ditemukan, tetap di IntroActivity
-            // Tambahkan listener pada layout untuk pindah ke LoginActivity saat layar disentuh
             View rootLayout = findViewById(R.id.main);
             rootLayout.setOnClickListener(v -> navigateToLogin());
         }
     }
 
     private void navigateToLogin() {
-        // Pindah ke LoginActivity saat pengguna mengklik layar
-        Intent intent = new Intent(IntroActivity.this, LoginActivity.class);
-        startActivity(intent);
-        finish(); // Tutup IntroActivity
+        startActivity(new Intent(this, LoginActivity.class));
+        finish(); // tutup intro
     }
 }

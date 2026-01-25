@@ -2,21 +2,18 @@ package com.edulearn.kelompok3.ViewModel;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.android.volley.DefaultRetryPolicy;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.edulearn.kelompok3.ApiConfig;
 import com.edulearn.kelompok3.Model.ModelJadwalDetail;
 import com.edulearn.kelompok3.Model.ModelJadwalGrouped;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +29,12 @@ public class JadwalViewModel extends ViewModel {
 
     private final List<String> hariOrder = List.of("Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu");
 
+    private DatabaseReference databaseRef;
+
+    public JadwalViewModel() {
+        databaseRef = FirebaseDatabase.getInstance().getReference();
+    }
+
     public LiveData<List<ModelJadwalGrouped>> getJadwalGroupedList() {
         return jadwalGroupedList;
     }
@@ -44,33 +47,44 @@ public class JadwalViewModel extends ViewModel {
         return errorMessage;
     }
 
-    public void fetchJadwal(RequestQueue requestQueue, String token) {
+    public void fetchJadwal(String uid) {
         isLoading.setValue(true);
-        errorMessage.setValue(null); // Reset error message
+        errorMessage.setValue(null);
 
-        // PERUBAHAN: Menambahkan token sebagai parameter di URL
-        String url = ApiConfig.BASE_URL + "api/jadwal.php?token=" + token;
+        // Path: jadwal/{uid} atau jadwal (jika data sama untuk semua)
+        databaseRef.child("schedules").child(uid)
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        isLoading.setValue(false);
 
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
-                response -> {
-                    try {
-                        if ("success".equals(response.getString("status")) && response.has("data")) {
-                            JSONArray dataArray = response.getJSONArray("data");
+                        if (!snapshot.exists()) {
+                            errorMessage.setValue("Tidak ada data jadwal");
+                            jadwalGroupedList.setValue(new ArrayList<>());
+                            return;
+                        }
+
+                        try {
                             Map<String, List<ModelJadwalDetail>> groupedData = new HashMap<>();
 
-                            for (int i = 0; i < dataArray.length(); i++) {
-                                JSONObject hariObj = dataArray.getJSONObject(i);
-                                String hari = hariObj.getString("hari");
-                                JSONArray mapelArray = hariObj.getJSONArray("mapel");
+                            for (DataSnapshot hariSnapshot : snapshot.getChildren()) {
+                                String hari = hariSnapshot.child("hari").getValue(String.class);
+
+                                if (hari == null) continue;
 
                                 List<ModelJadwalDetail> detailList = new ArrayList<>();
-                                for (int j = 0; j < mapelArray.length(); j++) {
-                                    JSONObject mapelObj = mapelArray.getJSONObject(j);
-                                    String namaMapel = mapelObj.getString("nama_mapel");
-                                    String jamMulai = mapelObj.getString("jam_mulai");
-                                    String jamSelesai = mapelObj.getString("jam_selesai");
-                                    detailList.add(new ModelJadwalDetail(namaMapel, jamMulai, jamSelesai));
+                                DataSnapshot mapelSnapshot = hariSnapshot.child("mapel");
+
+                                for (DataSnapshot mapel : mapelSnapshot.getChildren()) {
+                                    String namaMapel = mapel.child("nama_mapel").getValue(String.class);
+                                    String jamMulai = mapel.child("jam_mulai").getValue(String.class);
+                                    String jamSelesai = mapel.child("jam_selesai").getValue(String.class);
+
+                                    if (namaMapel != null && jamMulai != null && jamSelesai != null) {
+                                        detailList.add(new ModelJadwalDetail(namaMapel, jamMulai, jamSelesai));
+                                    }
                                 }
+
                                 groupedData.put(hari, detailList);
                             }
 
@@ -79,6 +93,7 @@ public class JadwalViewModel extends ViewModel {
                                 groupedList.add(new ModelJadwalGrouped(entry.getKey(), entry.getValue()));
                             }
 
+                            // Sort berdasarkan urutan hari
                             Collections.sort(groupedList, (o1, o2) -> {
                                 int index1 = hariOrder.indexOf(o1.getHari());
                                 int index2 = hariOrder.indexOf(o2.getHari());
@@ -86,42 +101,19 @@ public class JadwalViewModel extends ViewModel {
                             });
 
                             jadwalGroupedList.setValue(groupedList);
-                        } else {
-                            errorMessage.setValue("Respons tidak valid dari server. Status bukan success atau tidak ada data.");
+
+                        } catch (Exception e) {
+                            errorMessage.setValue("Error parsing data: " + e.getMessage());
+                            Log.e("JADWAL_VM_ERROR", "Error parsing Firebase data", e);
                         }
-                    } catch (JSONException e) {
-                        errorMessage.setValue("Error parsing JSON: " + e.getMessage());
-                        Log.e("JADWAL_VM_ERROR", "JSON parsing error", e);
-                    } finally {
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
                         isLoading.setValue(false);
+                        errorMessage.setValue("Error Firebase: " + error.getMessage());
+                        Log.e("JADWAL_VM_ERROR", "Firebase error", error.toException());
                     }
-                },
-                error -> {
-                    if (error.networkResponse != null) {
-                        String errorBody = new String(error.networkResponse.data);
-                        errorMessage.setValue("Error " + error.networkResponse.statusCode + ": " + errorBody);
-                        Log.e("JADWAL_VM_ERROR", "Volley error: " + error.networkResponse.statusCode + " Body: " + errorBody, error);
-                    } else {
-                        errorMessage.setValue("Error jaringan: " + error.getMessage());
-                        Log.e("JADWAL_VM_ERROR", "Volley network error", error);
-                    }
-                    isLoading.setValue(false);
-                }) {
-            @Override
-            public Map<String, String> getHeaders() {
-                // PERUBAHAN: Header Authorization tidak lagi dibutuhkan di sini
-                Map<String, String> headers = new HashMap<>();
-                headers.put("Accept", "application/json");
-                return headers;
-            }
-        };
-
-        jsonObjectRequest.setRetryPolicy(new DefaultRetryPolicy(
-                10000, // 10 detik
-                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        ));
-
-        requestQueue.add(jsonObjectRequest);
+                });
     }
 }

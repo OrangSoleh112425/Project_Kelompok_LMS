@@ -1,8 +1,6 @@
 package com.edulearn.kelompok3.Activity;
 
-import android.content.Context;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
@@ -11,22 +9,15 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.core.content.ContextCompat;
 
-import com.android.volley.AuthFailureError;
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
-import com.edulearn.kelompok3.ApiConfig;
-import com.edulearn.kelompok3.Fragment.ProfileFragment;
 import com.edulearn.kelompok3.R;
-
-import java.util.HashMap;
-import java.util.Map;
+import com.google.firebase.auth.AuthCredential;
+import com.google.firebase.auth.EmailAuthProvider;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 public class UbahSandiActivity extends AppCompatActivity {
 
@@ -34,10 +25,29 @@ public class UbahSandiActivity extends AppCompatActivity {
     private Button btnKonfirm;
     private ImageView backIcon;
 
+    private FirebaseAuth mAuth;
+    private FirebaseUser currentUser;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ubahsandi);
+
+        // Inisialisasi Firebase
+        mAuth = FirebaseAuth.getInstance();
+        FirebaseDatabase database = FirebaseDatabase.getInstance(
+                "https://db-lms-edulearn-default-rtdb.asia-southeast1.firebasedatabase.app"
+        );
+
+        DatabaseReference ref = database.getReference();
+
+        currentUser = mAuth.getCurrentUser();
+
+        if (currentUser == null) {
+            Toast.makeText(this, "User belum login", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
 
         // Inisialisasi komponen UI
         edtCurrentPassword = findViewById(R.id.edtCurrentPassword);
@@ -54,9 +64,9 @@ public class UbahSandiActivity extends AppCompatActivity {
     }
 
     private void updatePassword() {
-        String currentPassword = edtCurrentPassword.getText().toString();
-        String newPassword = edtPassword.getText().toString();
-        String confirmPassword = edtConfirmPassword.getText().toString();
+        String currentPassword = edtCurrentPassword.getText().toString().trim();
+        String newPassword = edtPassword.getText().toString().trim();
+        String confirmPassword = edtConfirmPassword.getText().toString().trim();
 
         // Validasi input
         if (currentPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
@@ -74,66 +84,47 @@ public class UbahSandiActivity extends AppCompatActivity {
             return;
         }
 
-        // Ambil token Bearer dari SharedPreferences
-        SharedPreferences sharedPreferences = getSharedPreferences("user_session", Context.MODE_PRIVATE);
-        String token = sharedPreferences.getString("user_token", "");  // Mengambil token yang disimpan
+        // Ambil email user
+        String email = currentUser.getEmail();
 
-        if (token.isEmpty()) {
-            showAlert("Peringatan", "Token tidak ditemukan. Silakan login kembali.");
+        if (email == null || email.isEmpty()) {
+            showAlert("Error", "Email user tidak ditemukan");
             return;
         }
 
-        String url = ApiConfig.BASE_URL + "api/update-password";
+        // Re-authenticate user dengan password lama
+        AuthCredential credential = EmailAuthProvider.getCredential(email, currentPassword);
 
-        // Buat request untuk mengganti password
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        // Tangani response dari server
-                        Toast.makeText(UbahSandiActivity.this, "Kata sandi berhasil diubah", Toast.LENGTH_SHORT).show();
+        currentUser.reauthenticate(credential)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        // Re-authentication berhasil, update password
+                        currentUser.updatePassword(newPassword)
+                                .addOnCompleteListener(updateTask -> {
+                                    if (updateTask.isSuccessful()) {
+                                        Toast.makeText(UbahSandiActivity.this,
+                                                "Kata sandi berhasil diubah",
+                                                Toast.LENGTH_SHORT).show();
 
-                        // Pindah ke ProfileFragment setelah password berhasil diubah
-                        navigateToProfileFragment();
+                                        // Clear input fields
+                                        edtCurrentPassword.setText("");
+                                        edtPassword.setText("");
+                                        edtConfirmPassword.setText("");
+
+                                        // Kembali ke activity sebelumnya
+                                        finish();
+                                    } else {
+                                        String errorMsg = updateTask.getException() != null ?
+                                                updateTask.getException().getMessage() :
+                                                "Gagal mengubah password";
+                                        showAlert("Kesalahan", errorMsg);
+                                    }
+                                });
+                    } else {
+                        // Re-authentication gagal (password lama salah)
+                        showAlert("Kesalahan", "Kata sandi saat ini tidak cocok");
                     }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-
-                        String errorMessage = "Kata sandi saat ini tidak cocok.";
-
-
-                        if (error.getMessage() != null) {
-                            errorMessage += " " + error.getMessage();
-                        }
-
-                        showAlert("Kesalahan", errorMessage);
-                    }
-
-                }) {
-            @Override
-            protected Map<String, String> getParams() throws AuthFailureError {
-                // Kirim data untuk mengganti password
-                Map<String, String> params = new HashMap<>();
-                params.put("password_lama", currentPassword);
-                params.put("password_baru", newPassword);
-                params.put("confirm_password", confirmPassword);
-                return params;
-            }
-
-            @Override
-            public Map<String, String> getHeaders() {
-                Map<String, String> headers = new HashMap<>();
-                headers.put("Authorization", "Bearer " + token);
-                headers.put("Accept", "application/json");
-                return headers;
-            }
-        };
-
-        // Menambahkan request ke queue Volley
-        RequestQueue requestQueue = Volley.newRequestQueue(this);
-        requestQueue.add(stringRequest);
+                });
     }
 
     // Fungsi untuk menampilkan alert dialog dengan tombol OK berwarna biru
@@ -141,30 +132,19 @@ public class UbahSandiActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(title)
                 .setMessage(message)
-                .setCancelable(false)  // Membuat dialog tidak bisa ditutup kecuali dengan tombol OK ditekan
+                .setCancelable(false)
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();  // Menutup dialog setelah tombol OK ditekan
+                        dialog.dismiss();
                     }
                 });
 
         AlertDialog dialog = builder.create();
         dialog.show();
 
-        // Mengubah warna tombol OK menjadi biru
+        // Mengubah warna tombol OK
         Button okButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-        okButton.setTextColor(ContextCompat.getColor(this, R.color.dark_text)); // Menggunakan warna biru
-    }
-
-    // Fungsi untuk navigasi ke ProfileFragment
-    private void navigateToProfileFragment() {
-        ProfileFragment profileFragment = new ProfileFragment();
-
-        // Menggunakan FragmentTransaction untuk mengganti konten layar dengan ProfileFragment
-        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        transaction.replace(R.id.fragment_container, profileFragment);  // Pastikan ID container sesuai dengan layout fragment
-        transaction.addToBackStack(null);  // Menambahkan ke backstack agar pengguna bisa kembali ke activity sebelumnya
-        transaction.commit();
+        okButton.setTextColor(ContextCompat.getColor(this, R.color.dark_text));
     }
 }

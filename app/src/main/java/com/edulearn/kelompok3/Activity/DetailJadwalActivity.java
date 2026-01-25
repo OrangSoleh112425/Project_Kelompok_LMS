@@ -14,7 +14,7 @@ import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
 import com.edulearn.kelompok3.Adapter.JadwalAdapterGrouped;
 import com.edulearn.kelompok3.R;
-import com.edulearn.kelompok3.ViewModel.JadwalViewModel;
+//import com.edulearn.kelompok3.ViewModel.JadwalViewModel;
 
 import java.util.ArrayList;
 
@@ -22,7 +22,7 @@ public class DetailJadwalActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
     private JadwalAdapterGrouped jadwalAdapterGrouped;
-    private JadwalViewModel jadwalViewModel;
+//    private JadwalViewModel jadwalViewModel;
     private RequestQueue requestQueue;
     private TextView noJadwalTextView;
 
@@ -40,36 +40,36 @@ public class DetailJadwalActivity extends AppCompatActivity {
         recyclerView.setAdapter(jadwalAdapterGrouped);
 
         // Inisialisasi ViewModel
-        jadwalViewModel = new ViewModelProvider(this).get(JadwalViewModel.class);
+//        jadwalViewModel = new ViewModelProvider(this).get(JadwalViewModel.class);
 
         // Inisialisasi TextView
         noJadwalTextView = findViewById(R.id.nojadwal);
 
         // Observasi data jadwal dari ViewModel
-        jadwalViewModel.getJadwalGroupedList().observe(this, groupedList -> {
-            if (groupedList == null || groupedList.isEmpty()) {
-                noJadwalTextView.setVisibility(View.VISIBLE);
-                recyclerView.setVisibility(View.GONE);
-            } else {
-                noJadwalTextView.setVisibility(View.GONE);
-                recyclerView.setVisibility(View.VISIBLE);
-                jadwalAdapterGrouped.updateData(groupedList);
-            }
-        });
+//        jadwalViewModel.getJadwalGroupedList().observe(this, groupedList -> {
+//            if (groupedList == null || groupedList.isEmpty()) {
+//                noJadwalTextView.setVisibility(View.VISIBLE);
+//                recyclerView.setVisibility(View.GONE);
+//            } else {
+//                noJadwalTextView.setVisibility(View.GONE);
+//                recyclerView.setVisibility(View.VISIBLE);
+//                jadwalAdapterGrouped.updateData(groupedList);
+//            }
+//        });
 
         // Observasi error
-        jadwalViewModel.getErrorMessage().observe(this, errorMessage -> {
-            if (errorMessage != null) {
-                Log.e("Error", errorMessage);
-            }
-        });
+//        jadwalViewModel.getErrorMessage().observe(this, errorMessage -> {
+//            if (errorMessage != null) {
+//                Log.e("Error", errorMessage);
+//            }
+//        });
 
         // Panggil API melalui ViewModel
         requestQueue = Volley.newRequestQueue(this);
         String token = getSharedPreferences("user_session", MODE_PRIVATE).getString("user_token", "");
-        if (!token.isEmpty()) {
-            jadwalViewModel.fetchJadwal(requestQueue, token);
-        }
+//        if (!token.isEmpty()) {
+//            jadwalViewModel.fetchJadwal(requestQueue, token);
+//        }
 
         // Tangani tombol kembali
         findViewById(R.id.ic_kembali).setOnClickListener(v -> {
